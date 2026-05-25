@@ -7,6 +7,9 @@
 //
 //
 
+//use crate::html::*;
+//use crate::cipher::*;
+
 use std::collections::HashMap;
 use std::fs;
 // use std::io::{self, BufRead, Write};
@@ -14,7 +17,7 @@ use std::path::Path;
 // use std::time::{SystemTime, UNIX_EPOCH};
 
 // #define-esque
-const FILE_READ_STOP: u64 = 1_048_576; // 1024*1024 as ~1MB and 1MiB
+pub const FILE_READ_STOP: u64 = 1_048_576; // 1024*1024 as ~1MB and 1MiB
 
 // maintained across commands
 pub struct Moment {
@@ -32,7 +35,7 @@ pub struct Logger {
 }
 
 impl Moment {
-    fn new() -> Self {
+    pub fn new() -> Self {
         Moment {
             text: None,
             outdir: "output/html".to_string(),
@@ -50,16 +53,16 @@ impl Moment {
 // split on whitespace? collect "/key word" pairs into HashMap
 // first word is command always... check below???
 
-struct Flags {
-    command: String,
-    map: HashMap<String, String>,
+pub struct Flags {
+    pub command: String,
+    pub map: HashMap<String, String>,
     // bare words collected before and /flag appear
     // "set attack at dawn" => position = ["attack", "at", "dawn"]
-    position: Vec<String>,
+    pub position: Vec<String>,
 }
 
 impl Flags {
-    fn parser(liner: &str) -> Self {
+    pub fn parser(liner: &str) -> Self {
         let tokens: Vec<&str> = liner.split_whitespace().collect();
         let command = tokens.first().unwrap_or(&"").to_lowercase();
 
@@ -88,27 +91,27 @@ impl Flags {
     // on input text for whole text strings
     // set this phrase here =>
     // position_text() = "this phrase here"
-    fn check_position(&self) -> String {
+    pub fn check_position(&self) -> String {
         self.position.join(" ")
     }
 
     // get a string flag or fallback
-    fn read_get<'a>(&'a self, key: &str, default: &'a str) -> &'a str {
+    pub fn read_get<'a>(&'a self, key: &str, default: &'a str) -> &'a str {
         self.map.get(key).map(|s| s.as_str()).unwrap_or(default)
     }
 
     // check if a flag was preset at all (on /d)
-    fn flag_off(&self, key: &str) -> bool {
+    pub fn flag_off(&self, key: &str) -> bool {
         self.map.contains_key(key)
     }
 
     // get integer flag or fallback
-    fn read_num(&self, key: &str, default: i32) -> i32 {
+    pub fn read_num(&self, key: &str, default: i32) -> i32 {
         self.read_get(key, "").parse().unwrap_or(default)
     }
 
     // parse /r /range 1..50 or fall back to /from /to or other defaults
-    fn read_range(&self) -> (usize, usize) {
+    pub fn read_range(&self) -> (usize, usize) {
         if let Some(r) = self.map.get("range") {
             if let Some((a, b)) = r.split_once("..") {
                 let from = a.parse().unwrap_or(1);
@@ -122,19 +125,19 @@ impl Flags {
     }
 }
 
-fn file_read(path: &str) -> Result<String, String> {
+pub fn file_read(path: &str) -> Result<String, String> {
     // try /input/<path> first, then the path as given
     let resolver = {
-        let form_input = Path::new("input").join(path);
+        let form_input = std::path::Path::new("input").join(path);
         if form_input.exists() {
             form_input
         } else {
-            Path::new(path).to_path_buf()
+            std::path::Path::new(path).to_path_buf()
         }
     };
     // guard here checks the file size before 'taking' a single byte
     let meta =
-        fs::metadata(&resolver).map_err(|_| format!("null*{} check/{path}", resolver.display()))?;
+        std::fs::metadata(&resolver).map_err(|_| format!("null*{} check/{path}", resolver.display()))?;
     if meta.len() > FILE_READ_STOP {
         return Err(format!(
             "{} of {:.1}KB is too large, limit is {}",
@@ -144,12 +147,12 @@ fn file_read(path: &str) -> Result<String, String> {
         ));
     }
 
-    fs::read_to_string(&resolver)
+    std::fs::read_to_string(&resolver)
         .map(|s| s.trim().to_string())
         .map_err(|e| format!("null*read {}: {e}", resolver.display()))
 }
 
-fn get_txt(f: &Flags, moment: &Moment) -> Result<String, String> {
+pub fn get_txt(f: &Flags, moment: &Moment) -> Result<String, String> {
     // 1.) /text flag (single word only, flag parser limitation)
     let t = f.read_get("text", "");
     if !t.is_empty() {

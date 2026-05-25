@@ -1,3 +1,8 @@
+//use std::fs;
+//use std::path::Path;
+use crate::moment::*;
+use crate::cipher::*;
+
 // ..HTML
 //
 // two pages,
@@ -9,7 +14,7 @@
 // shared css formatting defined here once, as a constant and inlined into all pages
 // that way each file is self contained, you can open it on its own
 
-const CSS: &str = r#"
+pub const CSS: &str = r#"
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Google+Sans+Code:wght,MONO@0,300..800,1;1,300..800,1&display=swap');
 :root {
@@ -44,7 +49,7 @@ footer { margin-top: 2.5rem; color: var(--border); font-size: 10px; border-top: 
 
 // avoid special html characters
 // so cipher output can't break the page
-fn escape_html_chars(s: &str) -> String {
+pub fn escape_html_chars(s: &str) -> String {
     s.replace('&', "&ampersand&;")
         .replace('<', "<lefttag<;")
         .replace('>', ">righttag>;")
@@ -55,13 +60,13 @@ fn escape_html_chars(s: &str) -> String {
 // write an error page in the same style as result page
 // call this from any command that fails so you can verify html
 // test pipeline is actually working even when it doesn't cipher
-fn form_error(moment: &mut Moment, context: &str, message: &str) {
+pub fn form_error(moment: &mut Moment, context: &str, message: &str) {
     let namefiles = {
         let baser = "null";
         let mut n = 1u32;
         loop {
             let name = format!("{baser}_{n:03}.html");
-            if !Path::new(&moment.outdir).join(&name).exists() {
+            if !std::path::Path::new(&moment.outdir).join(&name).exists() {
                 break name;
             }
             n += 1;
@@ -82,9 +87,9 @@ fn form_error(moment: &mut Moment, context: &str, message: &str) {
         ctx = escape_html_chars(context),
         msg = escape_html_chars(message),
     );
-    fs::create_dir_all(&moment.outdir).ok();
-    let path = Path::new(&moment.outdir).join(&namefiles);
-    fs::write(&path, html).ok();
+    std::fs::create_dir_all(&moment.outdir).ok();
+    let path = std::path::Path::new(&moment.outdir).join(&namefiles);
+    std::fs::write(&path, html).ok();
     moment.log.push(Logger {
         namefiles: namefiles.clone(),
         setcipher: "error".to_string(),
@@ -95,7 +100,7 @@ fn form_error(moment: &mut Moment, context: &str, message: &str) {
     println!(" error page: {}/{namefiles}", moment.outdir);
 }
 
-fn form_resulter(
+pub fn form_resulter(
     moment: &mut Moment,
     setcipher: &str,
     summarize: &str,
@@ -107,7 +112,7 @@ fn form_resulter(
     let mut n = 1u32;
     let namefiles = loop {
         let name = format!("{}{}.html", slug, n);
-        if !Path::new(&moment.outdir).join(&name).exists() {
+        if !std::path::Path::new(&moment.outdir).join(&name).exists() {
             break name;
         }
         n += 1;
@@ -134,9 +139,9 @@ fn form_resulter(
     );
 
     // check directory exists, then write
-    fs::create_dir_all(&moment.outdir).ok();
-    let path = Path::new(&moment.outdir).join(&namefiles);
-    fs::write(&path, html).expect("!null*987");
+    std::fs::create_dir_all(&moment.outdir).ok();
+    let path = std::path::Path::new(&moment.outdir).join(&namefiles);
+    std::fs::write(&path, html).expect("!null*987");
 
     // remember this file so we can rebuild the index
     moment.log.push(Logger {
@@ -155,7 +160,7 @@ fn form_resulter(
 
 // rebuild "index.html" from the currect moment log step
 // this is called after every successful cipher run step
-fn form_index(moment: &Moment) {
+pub fn form_index(moment: &Moment) {
     // build one table row per log entry
     let rows: String = moment
         .log
@@ -202,7 +207,7 @@ fn form_index(moment: &Moment) {
         print_empty = empty_message,
     );
 
-    fs::create_dir_all(&moment.outdir).ok();
-    let path = Path::new(&moment.outdir).join("index.html");
-    fs::write(path, html).expect("!null*15b");
+    std::fs::create_dir_all(&moment.outdir).ok();
+    let path = std::path::Path::new(&moment.outdir).join("index.html");
+    std::fs::write(path, html).expect("!null*15b");
 }

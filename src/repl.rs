@@ -1,3 +1,15 @@
+//mod html::*;
+//mod cipher::*;
+//use crate::html::form_index;
+//use crate::html::form_resulter;
+//use crate::html::form_error;
+//use crate::html::escape_html_chars;
+use crate::html::*;
+use crate::cipher::*;
+use crate::moment::*;
+
+use std::io::{Read, Write, BufRead};
+
 // ..REPL
 //
 // standalone function rather than a closure so it doesn't hold
@@ -16,19 +28,19 @@
 // would freeze the process, this guard checks metadata
 // (just a syscall, no read on content) before loading it
 
-fn file_read(path: &str) -> Result<String, String> {
+pub fn file_read(path: &str) -> Result<String, String> {
     // try /input/<path> first, then the path as given
     let resolver = {
-        let form_input = Path::new("input").join(path);
+        let form_input = std::path::Path::new("input").join(path);
         if form_input.exists() {
             form_input
         } else {
-            Path::new(path).to_path_buf()
+            std::path::Path::new(path).to_path_buf()
         }
     };
     // guard here checks the file size before 'taking' a single byte
     let meta =
-        fs::metadata(&resolver).map_err(|_| format!("null*{} check/{path}", resolver.display()))?;
+        std::fs::metadata(&resolver).map_err(|_| format!("null*{} check/{path}", resolver.display()))?;
     if meta.len() > FILE_READ_STOP {
         return Err(format!(
             "{} of {:.1}KB is too large, limit is {}",
@@ -38,12 +50,12 @@ fn file_read(path: &str) -> Result<String, String> {
         ));
     }
 
-    fs::read_to_string(&resolver)
+    std::fs::read_to_string(&resolver)
         .map(|s| s.trim().to_string())
         .map_err(|e| format!("null*read {}: {e}", resolver.display()))
 }
 
-fn get_txt(f: &Flags, moment: &Moment) -> Result<String, String> {
+pub fn get_txt(f: &Flags, moment: &Moment) -> Result<String, String> {
     // 1.) /text flag (single word only, flag parser limitation)
     let t = f.read_get("text", "");
     if !t.is_empty() {
@@ -74,7 +86,7 @@ fn get_txt(f: &Flags, moment: &Moment) -> Result<String, String> {
     moment
         .text
         .clone()
-        .ok_or_else(|| "try: set --text message".to_string())
+        .ok_or_else(|| "try: set /text message".to_string())
 }
 
 pub fn repl() {
@@ -84,16 +96,17 @@ pub fn repl() {
     // always be there no matter what...
     // '/input/' is self-explainatory
     // '/output/html/' keeps html away from project root?
-    fs::create_dir_all(&moment.outdir).ok();
-    fs::create_dir_all("input").ok();
+    std::fs::create_dir_all(&moment.outdir).ok();
+    std::fs::create_dir_all("input").ok();
 
     println!(" zephyr .. type 'help' to init...");
     println!(" writes to {}/index.html\n", moment.outdir);
 
-    let sin = io::stdin();
+    let sin = std::io::stdin();
     prompt();
 
     for raw in sin.lock().lines() {
+    //for raw in std::io::stdin().lock().lines() {
         // bug fix here was Ok(1) is a [integer literal]
         // must be Ok(l) in this case [variable binding]
         // .trim() also returns a &str so we call .to_string()
@@ -159,8 +172,8 @@ pub fn repl() {
                 println!(" place in /input folder");
             } else {
                 // create /input/ dir if missing show hint
-                if !Path::new("input").exists() {
-                    fs::create_dir_all("input").ok();
+                if !std::path::Path::new("input").exists() {
+                    std::fs::create_dir_all("input").ok();
                     println!("");
                 }
                 match file_read(&path) {
@@ -209,7 +222,7 @@ pub fn repl() {
         else if f.command == "out" {
             let dir = f.read_get("dir", "");
             if dir.is_empty() {
-                println!(" out --dir path");
+                println!(" out /dir path");
             } else {
                 moment.outdir = dir.to_string();
                 println!(" out -> {dir}");
@@ -238,7 +251,7 @@ pub fn repl() {
                     let key = f.read_get("key", "");
                     let decode = f.flag_off("decode");
                     if key.is_empty() {
-                        println!(" vig --key default");
+                        println!(" vig /key default");
                     } else {
                         let result = use_vigenere(&t, key, decode);
                         let summarize =
@@ -275,7 +288,7 @@ pub fn repl() {
                 Ok(t) => {
                     let key = f.read_get("key", "");
                     if key.is_empty() {
-                        println!(" b --key word");
+                        println!(" b /key word");
                     } else {
                         let result = use_beaufort(&t, key);
                         let summarize = format!("key={key}");
@@ -313,7 +326,7 @@ pub fn repl() {
                     let kw = f.read_get("key", "");
                     let decode = f.flag_off("decode");
                     if kw.is_empty() {
-                        println!(" word --key word");
+                        println!(" word /key word");
                     } else {
                         let alpha = set_kword_alpha(kw);
                         let result = use_substitute(&t, &alpha, decode);
@@ -376,9 +389,9 @@ pub fn repl() {
                             print_rows = rows,
                         );
 
-                        fs::create_dir_all(&moment.outdir).ok();
-                        let path = Path::new(&moment.outdir).join(&namefiles);
-                        fs::write(&path, html).expect("null*50567");
+                        std::fs::create_dir_all(&moment.outdir).ok();
+                        let path = std::path::Path::new(&moment.outdir).join(&namefiles);
+                        std::fs::write(&path, html).expect("null*50567");
 
                         moment.log.push(Logger {
                             namefiles: namefiles.clone(),
@@ -400,12 +413,12 @@ pub fn repl() {
     }
 }
 
-fn prompt() {
+pub fn prompt() {
     print!(" ..> ");
-    let _ = io::stdout().flush();
+    let _ = std::io::stdout().flush();
 }
 
-fn print_help() {
+pub fn print_help() {
     println!(
         r#"
         nothing right now...
